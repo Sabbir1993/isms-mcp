@@ -44,7 +44,7 @@ try {
   assert(names.includes("get_sample_payload"),       "get_sample_payload registered");
   assert(names.includes("validate_msisdn"),          "validate_msisdn registered");
   assert(names.includes("get_integration_checklist"),"get_integration_checklist registered");
-  assert(tools.length === 7,                         `Exactly 7 tools (got ${tools.length})`);
+  assert(tools.length === 8,                         `Exactly 8 tools (got ${tools.length})`);
 
   // [2] list_endpoints
   console.log("\n[2] list_endpoints");
@@ -146,8 +146,31 @@ try {
   assertIncludes(t11, "csms_id",     "Checklist covers CSMS ID strategy");
   assertIncludes(t11, "retry",       "Checklist covers retry logic");
 
-  // [12] Health check
-  console.log("\n[12] Health check endpoint");
+  // [12] ask_isms — Q&A tool
+  console.log("\n[12] ask_isms — free-form Q&A");
+  const qaTests: [string, string[]][] = [
+    ["What endpoints are available?",          ["single sms", "bulk sms", "dynamic", "/api/v3"]],
+    ["How do I authenticate?",                 ["api_token", "token", "ssl wireless"]],
+    ["What does error 4023 mean?",             ["duplicate", "csms_id", "unique"]],
+    ["How many recipients can I send bulk to?",["100", "bulk"]],
+    ["What phone number format should I use?", ["8801", "880", "msisdn"]],
+    ["What is a CSMS ID?",                     ["csms_id", "unique", "20"]],
+    ["Do you support Bengali?",                ["bn", "bengali", "unicode"]],
+    ["How do I handle rate limits?",           ["4029", "4031", "backoff"]],
+    ["Something totally unrelated xyz123",     ["no matching", "topics covered"]],
+  ];
+
+  for (const [question, mustContain] of qaTests) {
+    const rq = await mcpClient.callTool({ name: "ask_isms", arguments: { question } });
+    const tq  = (rq.content as [{text:string}])[0].text.toLowerCase();
+    for (const needle of mustContain) {
+      assertIncludes(tq, needle, `"${question.slice(0, 40)}" → contains "${needle}"`);
+    }
+    assert(rq.isError !== true, `"${question.slice(0, 40)}" — no error flag`);
+  }
+
+  // [13] Health check
+  console.log("\n[13] Health check endpoint");
   const health = await fetch(SERVER_URL.replace("/mcp", "/health"));
   const hj = await health.json() as { status: string; server: string };
   assert(health.ok,                               `Returns 200 (got ${health.status})`);

@@ -9,6 +9,7 @@ import {
   BASE_URL,
 } from "./knowledge/api-spec.js";
 import { generateCode, type Language } from "./knowledge/code-templates.js";
+import { answerQuestion } from "./knowledge/qa-engine.js";
 import type { EndpointId } from "./knowledge/api-spec.js";
 
 const ENDPOINT_IDS = ["single_sms", "otp_sms", "bulk_sms", "dynamic_sms"] as const;
@@ -260,6 +261,22 @@ export function createMcpServer(): McpServer {
         ),
       ];
       return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+  );
+
+  // ── Tool 8: ask_isms ──────────────────────────────────────────────────────
+  server.tool(
+    "ask_isms",
+    "Ask any free-form question about the SSL Wireless ISMSPLUS API. Returns only what is available and supported — no speculation.",
+    {
+      question: z
+        .string()
+        .min(3)
+        .describe("Your question about the ISMSPLUS API, e.g. 'How do I send bulk SMS?' or 'What does error 4023 mean?'"),
+    },
+    async ({ question }) => {
+      const answer = answerQuestion(question);
+      return { content: [{ type: "text", text: answer }] };
     }
   );
 

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ENDPOINTS, ERROR_CODES, SMS_STATUS_CODES, RESPONSE_SCHEMA, INTEGRATION_CHECKLIST, BASE_URL, } from "./knowledge/api-spec.js";
 import { generateCode } from "./knowledge/code-templates.js";
+import { answerQuestion } from "./knowledge/qa-engine.js";
 const ENDPOINT_IDS = ["single_sms", "otp_sms", "bulk_sms", "dynamic_sms"];
 const LANGUAGES = ["javascript", "python", "php", "java", "curl"];
 export function createMcpServer() {
@@ -198,6 +199,16 @@ export function createMcpServer() {
             ...INTEGRATION_CHECKLIST.map((item) => `${item.step}. **${item.title}**\n   ${item.detail}`),
         ];
         return { content: [{ type: "text", text: lines.join("\n") }] };
+    });
+    // ── Tool 8: ask_isms ──────────────────────────────────────────────────────
+    server.tool("ask_isms", "Ask any free-form question about the SSL Wireless ISMSPLUS API. Returns only what is available and supported — no speculation.", {
+        question: z
+            .string()
+            .min(3)
+            .describe("Your question about the ISMSPLUS API, e.g. 'How do I send bulk SMS?' or 'What does error 4023 mean?'"),
+    }, async ({ question }) => {
+        const answer = answerQuestion(question);
+        return { content: [{ type: "text", text: answer }] };
     });
     return server;
 }
