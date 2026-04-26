@@ -1,0 +1,172 @@
+{
+	"info": {
+		"_postman_id": "d940eeb5-7768-47ab-9272-39f770aab98b",
+		"name": "ISMSPLUS-API-V3.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "3085877"
+	},
+	"item": [
+		{
+			"name": "SINGLE-SMS",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"api_token\": \"{{api_token}}\",\n    \"sid\": \"{{sid}}\",\n    \"msisdn\": \"01884690791\",\n    \"sms\": \"Test Message\",\n    \"csms_id\": \"393188\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/v3/send-sms",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"send-sms"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SINGLE-OTP-SMS",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"api_token\": \"{{api_token}}\",\n    \"sid\": \"{{sid}}\",\n    \"msisdn\": \"01921370878\",\n    \"sms\": \"Test otp SMS from bulk push app\",\n    \"csms_id\": \"122345639\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/v3/send-otp-sms",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"send-otp-sms"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DYNAMIC-SMS",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"api_token\": \"{{api_token}}\",\n    \"sid\": \"{{sid}}\",\n    \"sms\":\n    [\n        {\"text\": \"Test Message\",\"msisdn\": \"01921370878\",\"csms_id\":\"23444434222\"},\n        {\"text\": \"Test Message\",\"msisdn\": \"01884690791\",\"csms_id\":\"22233424244\"},\n        {\"text\": \"Test Message \",\"msisdn\": \"01722412196\",\"csms_id\":\"22233422244\"},\n        {\"text\": \"Test Message \",\"msisdn\": \"01535756794\",\"csms_id\":\"22233442244\"}\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/api/v3/send-sms/dynamic",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"api",
+						"v3",
+						"send-sms",
+						"dynamic"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BULK-SMS",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"api_token\": \"{{api_token}}\",\n  \"sid\": \"{{sid}}\",\n  \"msisdn\": [\n    \"01921370878\",\n    \"0184690791\"\n  ],\n  \"sms\": \"Message Body\",\n  \"batch_csms_id\": \"2934fe343\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{domain}}/sslwireless.com/api/v3/send-sns/bulk",
+					"host": [
+						"{{domain}}"
+					],
+					"path": [
+						"sslwireless.com",
+						"api",
+						"v3",
+						"send-sns",
+						"bulk"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
