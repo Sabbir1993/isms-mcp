@@ -152,8 +152,70 @@ try {
         }
         assert(rq.isError !== true, `"${question.slice(0, 40)}" — no error flag`);
     }
-    // [13] Health check
-    console.log("\n[13] Health check endpoint");
+    // [13] ask_isms — interactive SMS type selection
+    console.log("\n[13] ask_isms — vague send → menu, then type selection");
+    // Vague questions should return the menu
+    const vagueQuestions = [
+        "How do I send SMS?",
+        "how to send a message?",
+        "I want to send sms",
+        "how can I send notification",
+        "how to deliver text",
+    ];
+    for (const vq of vagueQuestions) {
+        const rv = await mcpClient.callTool({ name: "ask_isms", arguments: { question: vq } });
+        const tv = rv.content[0].text.toLowerCase();
+        assertIncludes(tv, "1.", `"${vq}" → menu shows option 1`);
+        assertIncludes(tv, "2.", `"${vq}" → menu shows option 2`);
+        assertIncludes(tv, "bulk", `"${vq}" → menu lists bulk`);
+        assertIncludes(tv, "dynamic", `"${vq}" → menu lists dynamic`);
+        assertIncludes(tv, "otp", `"${vq}" → menu lists OTP`);
+        assertIncludes(tv, "reply with", `"${vq}" → menu has reply prompt`);
+    }
+    // Number selections from menu
+    const numberSelections = [
+        ["1", ["single sms", "/api/v3/send-sms", "csms_id"]],
+        ["2", ["otp", "/api/v3/send-otp-sms", "verification"]],
+        ["3", ["bulk", "100", "batch_csms_id"]],
+        ["4", ["dynamic", "personalised", "100"]],
+    ];
+    for (const [input, needles] of numberSelections) {
+        const rs = await mcpClient.callTool({ name: "ask_isms", arguments: { question: input } });
+        const ts = rs.content[0].text.toLowerCase();
+        for (const needle of needles) {
+            assertIncludes(ts, needle, `Selection "${input}" → contains "${needle}"`);
+        }
+    }
+    // Name selections from menu
+    const nameSelections = [
+        ["bulk", ["batch_csms_id", "100 recipients"]],
+        ["otp", ["otp sms", "one-time"]],
+        ["dynamic", ["dynamic", "personalised"]],
+        ["single", ["single sms", "one recipient"]],
+    ];
+    for (const [input, needles] of nameSelections) {
+        const rs = await mcpClient.callTool({ name: "ask_isms", arguments: { question: input } });
+        const ts = rs.content[0].text.toLowerCase();
+        for (const needle of needles) {
+            assertIncludes(ts, needle, `Name selection "${input}" → contains "${needle}"`);
+        }
+    }
+    // Specific questions still bypass the menu entirely
+    const specificQuestions = [
+        ["How do I send bulk SMS?", ["100", "batch_csms_id"]],
+        ["How does OTP SMS work?", ["otp", "/api/v3/send-otp"]],
+        ["How do I send dynamic SMS?", ["dynamic", "personalised"]],
+    ];
+    for (const [sq, needles] of specificQuestions) {
+        const rs = await mcpClient.callTool({ name: "ask_isms", arguments: { question: sq } });
+        const ts = rs.content[0].text.toLowerCase();
+        assert(!ts.includes("reply with"), `"${sq}" bypasses menu (specific type mentioned)`);
+        for (const needle of needles) {
+            assertIncludes(ts, needle, `"${sq}" → contains "${needle}"`);
+        }
+    }
+    // [14] Health check
+    console.log("\n[14] Health check endpoint");
     const health = await fetch(SERVER_URL.replace("/mcp", "/health"));
     const hj = await health.json();
     assert(health.ok, `Returns 200 (got ${health.status})`);

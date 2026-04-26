@@ -204,8 +204,8 @@ export function createMcpServer() {
     server.tool("ask_isms", "Ask any free-form question about the SSL Wireless ISMSPLUS API. Returns only what is available and supported — no speculation.", {
         question: z
             .string()
-            .min(3)
-            .describe("Your question about the ISMSPLUS API, e.g. 'How do I send bulk SMS?' or 'What does error 4023 mean?'"),
+            .min(1)
+            .describe("Your question or menu selection — e.g. 'How do I send bulk SMS?', 'What does error 4023 mean?', or just '2' / 'bulk' to pick a type."),
     }, async ({ question }) => {
         const answer = answerQuestion(question);
         return { content: [{ type: "text", text: answer }] };

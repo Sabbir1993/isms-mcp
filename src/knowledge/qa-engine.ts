@@ -294,6 +294,122 @@ const KNOWLEDGE: KnowledgeEntry[] = [
   },
 ];
 
+// ── SMS type menu ─────────────────────────────────────────────────────────────
+
+const SMS_TYPES = [
+  {
+    number: 1,
+    id: "single_sms" as const,
+    label: "Single SMS",
+    summary: "Send one message to one recipient",
+    aliases: ["single", "one", "1"],
+  },
+  {
+    number: 2,
+    id: "otp_sms" as const,
+    label: "OTP SMS",
+    summary: "Send a One-Time Password / verification code to one recipient",
+    aliases: ["otp", "one-time", "one time", "verify", "verification", "2fa", "2"],
+  },
+  {
+    number: 3,
+    id: "bulk_sms" as const,
+    label: "Bulk SMS",
+    summary: "Send the same message to up to 100 recipients at once",
+    aliases: ["bulk", "many", "multiple", "batch", "broadcast", "mass", "3"],
+  },
+  {
+    number: 4,
+    id: "dynamic_sms" as const,
+    label: "Dynamic SMS",
+    summary: "Send different personalised messages to up to 100 recipients",
+    aliases: ["dynamic", "personalise", "personalize", "individual", "custom", "different", "4"],
+  },
+];
+
+const SMS_MENU = [
+  "ISMSPLUS supports the following SMS sending services. Which type do you need?",
+  "",
+  ...SMS_TYPES.map((t) => `  ${t.number}. ${t.label}\n     ${t.summary}`),
+  "",
+  "Reply with the number (1–4) or type name (e.g. 'bulk', 'otp', 'dynamic').",
+].join("\n");
+
+/** Detects vague send-SMS intent with no specific type specified. */
+function isVagueSendQuestion(q: string): boolean {
+  const sendWords   = ["send", "sending", "how to send", "how do i send", "how can i send", "submit", "deliver", "dispatch", "push"];
+  const smsWords    = ["sms", "message", "text", "notification", "alert", "it"];
+  const specificType = SMS_TYPES.flatMap((t) => t.aliases);
+
+  const hasSend    = sendWords.some((w) => q.includes(w));
+  const hasSms     = smsWords.some((w) => q.includes(w));
+  const hasSpecific = specificType.some((a) => q.includes(a));
+
+  return hasSend && hasSms && !hasSpecific;
+}
+
+/** Matches a short follow-up reply to a specific SMS type (number or name). */
+function resolveTypeSelection(q: string): (typeof SMS_TYPES)[number] | null {
+  const trimmed = q.trim().toLowerCase();
+  return SMS_TYPES.find((t) => t.aliases.some((a) => trimmed === a || trimmed === String(t.number))) ?? null;
+}
+
+function smsTypeDetail(type: (typeof SMS_TYPES)[number]): string {
+  const ep = ENDPOINTS[type.id];
+  const lines = [
+    `## ${ep.name}`,
+    `URL:     ${BASE_URL}${ep.path}`,
+    `Methods: ${ep.methods.join(", ")}`,
+    "",
+    ep.description,
+    "",
+    "### Parameters",
+    ...ep.params.map(
+      (p) =>
+        `  ${p.required ? "[required]" : "[optional]"} ${p.name} (${p.type})` +
+        (p.max_length ? `, max ${p.max_length} chars` : "") +
+        `\n    ${p.description}`
+    ),
+    "",
+    "### Quick tips",
+  ];
+
+  if (type.id === "single_sms") {
+    lines.push(
+      "• csms_id must be unique per day (max 20 chars)",
+      "• Supports GET or POST",
+      "• Use for transactional messages (invoices, alerts, confirmations)"
+    );
+  } else if (type.id === "otp_sms") {
+    lines.push(
+      "• Same parameters as Single SMS — different endpoint for priority routing",
+      "• csms_id must be unique per day",
+      "• Keep OTP messages short and time-bounded in the text"
+    );
+  } else if (type.id === "bulk_sms") {
+    lines.push(
+      "• Max 100 recipients per request",
+      "• Use batch_csms_id (one ID for the entire batch, unique per day)",
+      "• All recipients get the identical message — use Dynamic SMS for personalised content"
+    );
+  } else if (type.id === "dynamic_sms") {
+    lines.push(
+      "• Max 100 messages per request",
+      "• Each message object needs its own csms_id (unique per day)",
+      "• Ideal for order updates, personalised alerts, per-user notifications"
+    );
+  }
+
+  lines.push(
+    "",
+    `Ask 'generate code for ${type.label}' to get a ready-to-use code snippet.`
+  );
+
+  return lines.join("\n");
+}
+
+// ── Scoring + answer ──────────────────────────────────────────────────────────
+
 /** Score a question against a knowledge entry by counting keyword hits. */
 function score(question: string, entry: KnowledgeEntry): number {
   const q = question.toLowerCase();
@@ -301,10 +417,25 @@ function score(question: string, entry: KnowledgeEntry): number {
 }
 
 /**
- * Find all knowledge entries that match the question (score > 0),
- * sorted by relevance. Returns their answers joined together.
+ * Answer a free-form question about the ISMSPLUS API.
+ *
+ * Resolution order:
+ *   1. Short type-selection reply  (e.g. "1", "bulk", "otp")
+ *   2. Vague send-SMS question     → show the type menu
+ *   3. Keyword-matched knowledge   → return relevant sections
+ *   4. No match                    → show topics list
  */
 export function answerQuestion(question: string): string {
+  const q = question.trim().toLowerCase();
+
+  // 1. Follow-up: user picked a type from the menu
+  const selected = resolveTypeSelection(q);
+  if (selected) return smsTypeDetail(selected);
+
+  // 2. Vague send intent — show the menu
+  if (isVagueSendQuestion(q)) return SMS_MENU;
+
+  // 3. Keyword scoring
   const scored = KNOWLEDGE.map((entry) => ({ entry, s: score(question, entry) }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s);
@@ -314,7 +445,7 @@ export function answerQuestion(question: string): string {
       "No matching information found for that question.",
       "",
       "Topics covered by this assistant:",
-      "  • Available endpoints (single SMS, OTP SMS, bulk SMS, dynamic SMS)",
+      "  • SMS sending types (single, OTP, bulk, dynamic)",
       "  • Authentication (api_token, sid)",
       "  • Phone number format (MSISDN)",
       "  • CSMS ID uniqueness rules",
@@ -329,17 +460,12 @@ export function answerQuestion(question: string): string {
     ].join("\n");
   }
 
-  // Return top matches; if multiple match equally well, include all
   const topScore   = scored[0].s;
   const topMatches = scored.filter((x) => x.s === topScore);
-  const rest       = scored.filter((x) => x.s < topScore).slice(0, 2); // at most 2 secondary
+  const rest       = scored.filter((x) => x.s < topScore).slice(0, 2);
 
-  const parts = [
+  return [
     ...topMatches.map((x) => x.entry.answer()),
-    ...(rest.length
-      ? ["", "--- Related ---", ...rest.map((x) => x.entry.answer())]
-      : []),
-  ];
-
-  return parts.join("\n\n");
+    ...(rest.length ? ["", "--- Related ---", ...rest.map((x) => x.entry.answer())] : []),
+  ].join("\n\n");
 }
