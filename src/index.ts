@@ -3,7 +3,7 @@ import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpServer } from "./server.js";
 
-const PORT = parseInt(process.env.PORT ?? "3000", 10);
+const PORT = 3001;
 
 const app = express();
 app.use(express.json());
